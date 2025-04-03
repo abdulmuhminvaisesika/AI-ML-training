@@ -5,12 +5,22 @@ from vector import retriever
 model = OllamaLLM(model="llama3.2")
 
 template = """
-You are an exeprt in answering questions about a pizza restaurant
+    You are a helpful assistant answering questions about a pizza restaurant based on customer reviews.
 
-Here are some relevant reviews: {reviews}
+    ### How to Respond:
+    - Give a clear and friendly answer.
+    - Use key details from the reviews to support your response.
+    - Keep it short, engaging, and to the point.
 
-Here is the question to answer: {question}
-"""
+    ### Reviews:
+    {reviews}
+
+    ### Question:
+    {question}
+
+    ### Your Answer:
+    """
+
 prompt = ChatPromptTemplate.from_template(template)
 chain = prompt | model
 
