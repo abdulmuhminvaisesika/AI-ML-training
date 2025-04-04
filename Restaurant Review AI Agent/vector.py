@@ -1,64 +1,76 @@
 import pandas as pd
 import os
 import re
-from langchain_ollama import OllamaEmbeddings
-from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
-from collections import Counter
 import nltk
+from langchain_ollama import OllamaEmbeddings
+from langchain.vectorstores import Chroma
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
+from langchain_community.vectorstores import Chroma
+from langchain.schema import Document
 
 # Download stopwords & wordnet if not already downloaded
 nltk.download('stopwords')
 nltk.download('wordnet')
 
-
 # Initialize stopwords & lemmatizer
 stop_words = set(stopwords.words("english"))
 lemmatizer = WordNetLemmatizer()
 
-
 # Load restaurant reviews dataset
 df = pd.read_csv(r"C:\Users\abdul.muhmin\Downloads\realistic_restaurant_reviews.csv")
+
+
+
+
+# Convert each row into a structured Document format
+documents = []
+for _, row in df.iterrows():
+    doc = Document(
+        page_content=row["Review"],  # Use the review text as the content
+        metadata={
+            "title": row["Title"],
+            "date": row["Date"],
+            "rating": row["Rating"],
+        }
+    )
+    documents.append(doc)
+
 
 # Initialize embedding model
 embeddings = OllamaEmbeddings(model="mxbai-embed-large")
 
+# Initialize Chroma vector store
+vectorstore = Chroma.from_documents(documents, embedding=embeddings, persist_directory="./chroma_db")
+
+
 def extract_keywords(query):
     """Extracts meaningful keywords from the user's query using lemmatization."""
-    
-    # Remove possessive 's (e.g., "what's" → "what")
-    query = re.sub(r"(\w+)'s", r"\1", query)  
-    
-    words = re.findall(r'\b\w+\b', query.lower())  # Tokenization
-    filtered_words = [
-        lemmatizer.lemmatize(word) for word in words 
+    # Tokenize and filter words
+    words = [
+        lemmatizer.lemmatize(word) 
+        for word in re.findall(r'\b\w+\b', query.lower())  # Tokenize to words
         if word not in stop_words and len(word) > 1
     ]
-    print(list(set(filtered_words)))
-    return list(set(filtered_words))  # Remove duplicates
-
+    keywords = set(words)  # Remove duplicates by converting to set
+    print(keywords)
+    print("\n\n-------------------------------------------")
+    return keywords
 
 def retrieve_reviews(query):
-    """Searches for reviews that contain extracted keywords."""
+    """Retrieves the most relevant reviews using ChromaDB."""
     keywords = extract_keywords(query)
-    if not keywords:
-        return "No relevant keywords found in your question."
 
-    # Filter reviews containing any of the keywords
-    matching_reviews = df[df['Review'].str.lower().apply(lambda review: any(word in review for word in keywords))]
+    # If similarity_search expects a space-separated string, your current approach is fine.
+    query_string = " ".join(keywords)
 
-    if matching_reviews.empty:
-        return "No relevant reviews found."
-
-    # Return top 5 reviews as formatted text
-    top_reviews = matching_reviews.head(5)
-
-
-    reviews_text = "\n\n".join([f"Rating: {row['Rating']}, Review: {row['Review']}" for _, row in top_reviews.iterrows()])
+    # Retrieve top 5 relevant reviews
+    results = vectorstore.similarity_search(query_string, k=5)  
     
-
-    print(reviews_text)
-    print("--------------------")
-
-    return reviews_text
+    if results:  # This is a bit more Pythonic.
+        reviews_text = "\n\n".join([f"Review: {res.page_content}" for res in results])
+        print(reviews_text)
+        print("\n\n---------------------------------------------------------------------------------------------------------------")
+        return reviews_text
+    else:
+        return "No relevant reviews found."
