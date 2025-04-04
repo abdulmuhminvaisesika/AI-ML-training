@@ -1,36 +1,49 @@
 from langchain_ollama.llms import OllamaLLM
-from langchain_core.prompts import ChatPromptTemplate
-from vector import retriever
+from langchain_core.prompts import PromptTemplate
+from vector import retrieve_reviews
+from langchain.memory import ConversationBufferWindowMemory
+from langchain.chains import LLMChain
 
 model = OllamaLLM(model="llama3.2")
 
+# Use memory that keeps only the last 5 interactions
+memory = ConversationBufferWindowMemory(memory_key="chat_history", k=10)
+
+
 template = """
-    You are a helpful assistant answering questions about a pizza restaurant based on customer reviews.
+        You are a helpful and conversational AI assistant helping users with questions about a pizza restaurant based on customer reviews.
 
-    ### How to Respond:
-    - Give a clear and friendly answer.
-    - Use key details from the reviews to support your response.
-    - Keep it short, engaging, and to the point.
+        ### Conversation History:
+        {chat_history}
 
-    ### Reviews:
-    {reviews}
+        ### User Input:
+        {input}
 
-    ### Question:
-    {question}
 
-    ### Your Answer:
+
+        ### Instructions:
+        - Respond in a friendly, engaging tone.
+        - Use relevant details from the reviews to support your answer.
+        - Reference past questions if helpful.
+        - Keep your answer short, clear, and helpful.
+
+        ### Your Answer:
     """
 
-prompt = ChatPromptTemplate.from_template(template)
-chain = prompt | model
+
+prompt = PromptTemplate.from_template(template)
+
+chain = LLMChain(llm=model, prompt=prompt, memory=memory)
+
 
 while True:
     print("\n\n-------------------------------")
     question = input("Ask your question (q to quit): ")
     print("\n\n")
-    if question == "q":
+    if question.lower() == "q":
         break
-    
-    reviews = retriever.invoke(question)
-    result = chain.invoke({"reviews": reviews, "question": question})
-    print(result)
+
+    reviews = retrieve_reviews(question)
+    full_input = f"Reviews:\n{reviews}\n\nQuestion:\n{question}"
+    result = chain.invoke({"input": full_input})
+    print(result["text"])

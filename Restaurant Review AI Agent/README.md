@@ -56,3 +56,14 @@ AI will fetch relevant reviews and generate a response.
 ### 4. Exit the program
 Type `q` and press **Enter**.
 
+
+
+
+
+Based on the query extract keyworkds 
+
+search keyword in dataframe 
+
+retrieve all teh rows having the keyworks 
+
+send retrieved data to llm to generate response.
