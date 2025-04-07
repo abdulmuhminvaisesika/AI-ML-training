@@ -19,7 +19,7 @@ class State(TypedDict):
 llm = ChatOllama(model="llama3")
 
 def llm_node(state: State) -> State:
-    print("🧠 LLM Node")
+    print("LLM Node")
     message = HumanMessage(content=state["input"])
     result = llm.invoke([message])
     return {"llm_response": result.content}
@@ -30,20 +30,20 @@ def llm_node(state: State) -> State:
 search_tool = TavilySearchResults(max_results=1)
 
 def search_node(state: State) -> State:
-    print("🔍 Search Node")
+    print("Search Node")
     results = search_tool.invoke({"query": state["input"]})
     return {"search_result": results[0]["content"]}
 
 # ---------- SUMMARIZATION ----------
 def summarization_node(state: State) -> State:
-    print("✍️ Summary Node")
+    print("Summary Node")
     message = HumanMessage(content=f"Summarize this:\n\n{state['search_result']}")
     summary = llm.invoke([message])
     return {"summary": summary.content}
 
 # ---------- FINAL OUTPUT ----------
 def final_node(state: State) -> State:
-    print("✅ Final Node")
+    print("Final Node")
     if state.get("summary"):
         return {
             "llm_response": f"{state['llm_response']}\n\n(Info from search: {state['summary']})"
@@ -68,6 +68,6 @@ app = builder.compile()
 
 # ---------- RUN ----------
 if __name__ == "__main__":
-    user_input = input("🔤 Ask me anything: ")
+    user_input = input("Ask me anything: ")
     result = app.invoke({"input": user_input})
-    print("\n🧠 Final Answer:\n", result["llm_response"])
+    print("\nFinal Answer:\n", result["llm_response"])
