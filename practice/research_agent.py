@@ -1,0 +1,5 @@
+LANGSMITH_TRACING=True
+LANGSMITH_ENDPOINT="https://api.smith.langchain.com"
+LANGSMITH_API_KEY="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"
+LANGSMITH_PROJECT="langchain-academy"
+OPENAI_API_KEY=""   
